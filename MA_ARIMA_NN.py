@@ -28,6 +28,7 @@ import math
 import pandas as pd
 import statsmodels.api as sm
 
+
 fName = 'Sales_By_Weather_Time_Series_soo.csv'
 df = pd.read_csv(fName)
 
@@ -37,8 +38,10 @@ new_df = df.set_index('SaleDate')
 ts = new_df['SaleQty']
 
 
-### Step1 - Make data stationary
-### I followed codes from reference [1]
+''''================================
+    Step1 - Make data stationary
+    I followed codes from reference [1]
+================================''''
 
 ts_log = np.log(ts)
 df_log = pd.DataFrame(ts_log)
@@ -47,6 +50,94 @@ ts_log = noinf_df_log['SaleQty']
 
 # Estimating & Eliminating trend. Moving Average
 moving_avg = ts_log.rolling(window=2,center=False).mean()
+
+plt.figure(figsize=(10,6))
+plt.plot(ts_log)
+plt.plot(moving_avg, color='red')
+plt.show()
+
+# Check data is stationary
+ts_log_ma_diff = ts_log - moving_avg
+ts_log_ma_diff.head(12)
+
+
+def test_stationarity(timeseries):
+	from statsmodels.tsa.stattools import adfuller
+	
+	#Determing rolling statistics
+	rolmean = pd.rolling_mean(timeseries, window=12)
+	rolstd = pd.rolling_std(timeseries, window=12)
+	
+	#Plot rolling statistics:
+	plt.figure(figsize=(10,6))
+	orig = plt.plot(timeseries, color='blue',label='Original')
+	mean = plt.plot(rolmean, color='red', label='Rolling Mean')
+	std = plt.plot(rolstd, color='black', label = 'Rolling Std')
+	plt.legend(loc='best')
+	plt.title('Rolling Mean & Standard Deviation')
+	plt.show(block=False)
+	
+	#Perform Dickey-Fuller test:
+	print ('Results of Dickey-Fuller Test:')
+	dftest = adfuller(timeseries, autolag='AIC')
+	print(dftest)
+	dfoutput = pd.Series(dftest[0:4], index=['Test Statistic','p-value','#Lags Used','Number of Observations Used'])
+	for key,value in dftest[4].items():
+		dfoutput['Critical Value (%s)'%key] = value
+	print (dfoutput)
+
+
+ts_log_ma_diff.dropna(inplace=True)
+test_stationarity(ts_log_ma_diff)
+# Compare Test Statistic, Critical Values
+
+# ACF and PACF plots
+from statsmodels.tsa.stattools import acf, pacf
+
+lag_acf = acf(ts_log_ma_diff, nlags=20)
+lag_pacf = pacf(ts_log_ma_diff, nlags=20, method='ols')
+
+#Plot ACF: 
+plt.figure(figsize=(10,6))
+plt.subplot(121) 
+plt.plot(lag_pacf)
+plt.axhline(y=0,linestyle='--',color='gray')
+plt.axhline(y=-1.96/np.sqrt(len(ts_log_ma_diff)),linestyle='--',color='gray')
+plt.axhline(y=1.96/np.sqrt(len(ts_log_ma_diff)),linestyle='--',color='gray')
+plt.title('Autocorrelation Function')
+
+#Plot PACF:
+plt.subplot(122)
+plt.plot(lag_pacf)
+plt.axhline(y=0,linestyle='--',color='gray')
+plt.axhline(y=-1.96/np.sqrt(len(ts_log_ma_diff)),linestyle='--',color='gray')
+plt.axhline(y=1.96/np.sqrt(len(ts_log_ma_diff)),linestyle='--',color='gray')
+plt.title('Partial Autocorrelation Function')
+plt.tight_layout()
+
+plt.show()
+
+''''================================
+    Step2 - Make ARIMA model
+    I followed codes from reference [1]
+================================''''
+
+from statsmodels.tsa.arima_model import ARIMA
+
+model = ARIMA(ts_log_ma_diff, order=(1,0,1)) # order came out from ACF, PACF plot data
+results_ARIMA = model.fit(disp=-1)
+
+plt.figure(figsize=(10,6))
+plt.plot(ts_log_ma_diff)
+plt.plot(results_ARIMA.fittedvalues, color='red')
+plt.title('RSS: %.4f'% sum((results_ARIMA.fittedvalues.values - ts_log_ma_diff.values) ** 2))
+plt.show()
+
+
+
+''''
+Working on...
+''''
 
 
 
