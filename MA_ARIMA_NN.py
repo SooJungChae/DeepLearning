@@ -8,6 +8,9 @@ ARIMA
 Step3
 ANN
 
+Step4
+ARIMA+ANN
+
 [Reference]
 [1] A comprehensive beginner’s guide to create a Time Series Forecast (with Codes in Python)
     Link --> https://www.analyticsvidhya.com/blog/2016/02/time-series-forecasting-codes-python/
@@ -133,6 +136,10 @@ plt.plot(results_ARIMA.fittedvalues, color='red')
 plt.title('RSS: %.4f'% sum((results_ARIMA.fittedvalues.values - ts_log_ma_diff.values) ** 2))
 plt.show()
 
+''''================================
+    Step3 - Make ANN from 
+    I followed codes from reference [1]
+================================''''
 
 
 ''''
